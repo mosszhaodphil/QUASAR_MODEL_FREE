@@ -13,7 +13,7 @@ function residue_scaled_vector = svd_block_circulant(signal_vector, aif_vector, 
 	% Perform zero padding
 	% By zero-padding the N-point time series Ca(t) and C(t) to length L, where L ≥ 2N,
 	% time aliasing can be avoided
-	new_length = floor(n_ti * 2.1); % now new_length ≥ 2 * n_ti
+	new_length = floor(n_ti * 2.2); % now new_length ≥ 2 * n_ti
 
 	% Create zero padding vectors for signal and aif
 	aif_padding_vector    = create_zero_padding_vector(aif_vector, new_length);
