@@ -3,7 +3,7 @@
 % signal_vector: ASL signal time series of one voxel
 % aif_vector: arterial input function of the corresponding ASl signal time series
 % deltaTI: delta_ti
-% Ouput: residue vector (also time series) scaled by CBF
+% Output: residue vector (also time series) scaled by CBF
 % Ref: Deconvolution Using a Block-Circulant Matrix, Wu 2003, doi/10.1002/mrm.10522
 
 function residue_scaled_vector = svd_block_circulant(signal_vector, aif_vector, deltaTI)
@@ -29,11 +29,42 @@ function residue_scaled_vector = svd_block_circulant(signal_vector, aif_vector, 
 	aif_block_circulant_matrix = create_block_circulant_matrix(aif_triangular_matrix);
 
 	% Perform singular value decomposition of the inverse of aif_block_circulant_matrix
-	[V, W, U_transpose] = svd(inv(aif_block_circulant_matrix));
+	[U, S, V_transpose] = svd(aif_block_circulant_matrix);
 
-	residue_scaled_vector = V * W * U_transpose * aif_padding_vector;
+	% Construct W, V, U_transpose such that V * W * U_transpose = D or inverse of A (Wu, 2003)
+	W           = inv(S);
+	V           = (V_transpose);
+	U_transpose = (U);
 
-	% Now perform oscillation index by Gobbel and Fike
+	% According to (Wu, 2003), we need a threshold p_SVD such that
+	% if value of S is less than p_SVD, we set the corresponding value in W to zero.
+	% Since S is decreasing along the diagonal,
+	% we can set p_SVD to be the smallest value along the diagonal of S.
+	% As such, p_SVD will increase along the diagonal of S (from bottom to top).
+	% As a result, the values along the diagonal of W will become zero from bottom to top.
+
+	% We begin by using all singular values (diagonal) of W
+	residue_scaled_vector = V * W * U_transpose * signal_padding_vector; % calculate residue scaled by CBF
+	oi = calculate_oi_Gobbel_Fike(residue_scaled_vector); % Calculate the current oscillation_index(oi)
+	oi_threshold = 0.1; % set an oi threshold to be updated
+
+	% Start removing singular values of W one by one from bottom to top
+	% Do so until the calculated oi is less than the threshold
+	j = length(residue_scaled_vector);
+	while((oi > oi_threshold) && j > 1)
+		p_SVD = W(j, j);
+		% Set the lowest non-zero singular value of W to zero
+		W(j, j) = 0; % This W(j, j) corresponds to the smallest S(j, j). We set it to zero.
+
+		% Update residue vector and oi
+		residue_scaled_vector = V * W * U_transpose * signal_padding_vector; % calculate residue scaled by CBF
+		oi = calculate_oi_Gobbel_Fike(residue_scaled_vector); % Calculate the current oscillation_index(oi)
+		j = j - 1;
+	end
+
+	% Now the residue vector (scaled by CBF) should be the output
+	% This length of residue vector is new_length or (n_ti + padding)
+	% CBF value is the largest element of this residue vector
 
 end
 
