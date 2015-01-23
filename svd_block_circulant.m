@@ -14,6 +14,8 @@ function residue_scaled_vector = svd_block_circulant(signal_vector, aif_vector, 
 	% By zero-padding the N-point time series Ca(t) and C(t) to length L, where L ≥ 2N,
 	% time aliasing can be avoided
 	new_length = floor(n_ti * 2.2); % now new_length ≥ 2 * n_ti
+    
+    residue_scaled_vector = zeros(new_length, 1);
 
 	% Create zero padding vectors for signal and aif
 	aif_padding_vector    = create_zero_padding_vector(aif_vector, new_length);
@@ -29,12 +31,13 @@ function residue_scaled_vector = svd_block_circulant(signal_vector, aif_vector, 
 	aif_block_circulant_matrix = create_block_circulant_matrix(aif_triangular_matrix);
 
 	% Perform singular value decomposition of the inverse of aif_block_circulant_matrix
-	[U, S, V_transpose] = svd(aif_block_circulant_matrix);
+	% U * S * V' = aif_block_circulant_matrix
+	[U, S, V] = svd(aif_block_circulant_matrix);
 
 	% Construct W, V, U_transpose such that V * W * U_transpose = D or inverse of A (Wu, 2003)
-	W           = inv(S);
-	V           = (V_transpose);
-	U_transpose = (U);
+	W           = inv(S); % inverse of matrix S
+	V           = V;
+	U_transpose = (U)';
 
 	% According to (Wu, 2003), we need a threshold p_SVD such that
 	% if value of S is less than p_SVD, we set the corresponding value in W to zero.
@@ -45,7 +48,7 @@ function residue_scaled_vector = svd_block_circulant(signal_vector, aif_vector, 
 
 	% We begin by using all singular values (diagonal) of W
 	residue_scaled_vector = V * W * U_transpose * signal_padding_vector; % calculate residue scaled by CBF
-	oi = calculate_oi_Gobbel_Fike(residue_scaled_vector); % Calculate the current oscillation_index(oi)
+	oi = calculate_oi_Gobbel_Fike(residue_scaled_vector); % Calculate the current oscillation index(oi)
 	oi_threshold = 0.1; % set an oi threshold to be updated
 
 	% Start removing singular values of W one by one from bottom to top
@@ -58,7 +61,7 @@ function residue_scaled_vector = svd_block_circulant(signal_vector, aif_vector, 
 
 		% Update residue vector and oi
 		residue_scaled_vector = V * W * U_transpose * signal_padding_vector; % calculate residue scaled by CBF
-		oi = calculate_oi_Gobbel_Fike(residue_scaled_vector); % Calculate the current oscillation_index(oi)
+		oi = calculate_oi_Gobbel_Fike(residue_scaled_vector); % Calculate the current oscillation index(oi)
 		j = j - 1;
 	end
 
