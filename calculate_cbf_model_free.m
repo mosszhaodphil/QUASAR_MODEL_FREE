@@ -28,7 +28,7 @@ function [cbf_matrix residue_matrix] = calculate_cbf_model_free(tissue_matrix, a
 				tissue_vector = tissue_vector(:);
 
 				% Now use block circulant SVD to perform model free analysis
-				residue_vector      = svd_block_circulant(tissue_matrix(i, j, k, :), aif_matrix(i, j, k, :), deltaTI); % Get residue vector
+				residue_vector      = svd_block_circulant(tissue_vector, aif_vector, deltaTI); % Get residue vector
 				unscaled_cbf_value  = calculate_perfusion_from_residue_vector(residue_vector); % Get CBF value of current residue vector
 				corrected_cbf_value = correct_cbf_scale(unscaled_cbf_value); % Correct CBF into absolute scale
 
